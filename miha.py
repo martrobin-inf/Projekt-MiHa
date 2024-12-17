@@ -13,81 +13,178 @@
 ##################################################
 
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
+import sqlite3
 import os
+from datetime import datetime
 
-# Funktsioon ülesande lisamiseks nimekirja
+# SQLite andmebaasi ühendamine ja loomine
+# See funktsioon loob vajaliku tabeli, kui seda pole olemas
+# ja tagab ühenduse andmebaasiga
+
+def init_db():
+    global conn, cursor
+    db_path = "./data/ülesanded.db"  # Andmebaasi fail asub rakenduse kataloogis
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS ülesanded (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        pealkiri TEXT NOT NULL,
+                        kategooria TEXT,
+                        prioriteet TEXT,
+                        tähtaeg TEXT,
+                        loodud TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )''')
+    conn.commit()
+
+# Funktsioon ülesande lisamiseks andmebaasi
+# Kasutaja sisestab vajalikud andmed vormi kaudu
+
 def lisa_ülesanne():
-    ülesanne = ülesande_sisestus.get()
-    if ülesanne != "":
-        ülesannete_nimekiri.insert(tk.END, ülesanne)
-        ülesande_sisestus.delete(0, tk.END)
-    else:
-        messagebox.showwarning("Hoiatus", "Peate sisestama ülesande.")
+    pealkiri = ülesande_sisestus.get()
+    kategooria = kategooria_var.get()
+    prioriteet = prioriteet_var.get()
+    tähtaeg = tähtaeg_sisestus.get()
+
+    if not pealkiri.strip():
+        messagebox.showwarning("Viga", "Ülesande pealkiri ei tohi olla tühi.")
+        return
+
+    try:
+        if tähtaeg:
+            datetime.strptime(tähtaeg, "%Y-%m-%d")  # Kontrollime kuupäeva formaati
+        cursor.execute("INSERT INTO ülesanded (pealkiri, kategooria, prioriteet, tähtaeg) VALUES (?, ?, ?, ?)",
+                       (pealkiri, kategooria, prioriteet, tähtaeg))
+        conn.commit()
+        laadi_ülesanded()
+        tühjenda_väljad()
+        messagebox.showinfo("Õnnestus", "Ülesanne edukalt lisatud.")
+    except ValueError:
+        messagebox.showerror("Viga", "Kuupäev peab olema formaadis YYYY-MM-DD.")
 
 # Funktsioon valitud ülesande kustutamiseks
+
 def kustuta_ülesanne():
-    try:
-        valitud_ülesande_indeks = ülesannete_nimekiri.curselection()[0]
-        ülesannete_nimekiri.delete(valitud_ülesande_indeks)
-    except IndexError:
-        messagebox.showwarning("Hoiatus", "Peate valima ülesande, mida kustutada.")
+    valitud_üksus = ülesannete_loend.selection()
+    if not valitud_üksus:
+        messagebox.showwarning("Viga", "Valige ülesanne kustutamiseks.")
+        return
 
-# Funktsioon ülesannete salvestamiseks kausta assets
-def salvesta_ülesanded():
-    # Veendu, et kataloog olemas
-    os.makedirs(assets_kaust, exist_ok=True)
-    # Salvestamine assets kaustale
-    
-    
-    
-    messagebox.showinfo("Info", "Ülesanded salvestatud edukalt.")
+    ülesande_id = ülesannete_loend.item(valitud_üksus[0], 'values')[0]
+    cursor.execute("DELETE FROM ülesanded WHERE id = ?", (ülesande_id,))
+    conn.commit()
+    laadi_ülesanded()
 
-# Funktsioon ülesannete laadimiseks kaustast assets
+# Funktsioon ülesannete laadimiseks andmebaasist ja kuvamiseks tabelis
+
 def laadi_ülesanded():
-    if os.path.exists(ülesannete_fail):
+    for item in ülesannete_loend.get_children():
+        ülesannete_loend.delete(item)
 
+    otsingu_päring = otsingu_sisestus.get().strip().lower()
+    if otsingu_päring:
+        cursor.execute("SELECT * FROM ülesanded WHERE LOWER(pealkiri) LIKE ? OR LOWER(kategooria) LIKE ?", 
+                       (f"%{otsingu_päring}%", f"%{otsingu_päring}%"))
+    else:
+        cursor.execute("SELECT * FROM ülesanded ORDER BY CASE prioriteet WHEN 'Kõrge' THEN 1 WHEN 'Keskmine' THEN 2 WHEN 'Madal' THEN 3 END")
 
+    for row in cursor.fetchall():
+        ülesande_id, pealkiri, kategooria, prioriteet, tähtaeg, _ = row
+        värv = "#ffcccc" if prioriteet == "Kõrge" else "#ffffcc" if prioriteet == "Keskmine" else "#ccffcc"
+        ülesannete_loend.insert("", tk.END, values=(ülesande_id, pealkiri, kategooria, prioriteet, tähtaeg), tags=(värv,))
 
+    ülesannete_loend.tag_configure("#ffcccc", background="#ffcccc")
+    ülesannete_loend.tag_configure("#ffffcc", background="#ffffcc")
+    ülesannete_loend.tag_configure("#ccffcc", background="#ccffcc")
 
+# Tühjendame vormiväljad peale ülesande lisamist
 
-def main():
-    # Algatame peamise rakenduse akna
-    root = tk.Tk()
-    root.title("Ülesannete Nimekirja Rakendus")
-    root.geometry("300x400")
+def tühjenda_väljad():
+    ülesande_sisestus.delete(0, tk.END)
+    kategooria_var.set(kategooriad[0])
+    prioriteet_var.set(prioriteedid[0])
+    tähtaeg_sisestus.delete(0, tk.END)
 
-    # Kataloog ülesannete salvestamiseks
-    global assets_kaust
-    assets_kaust = "assets"
-    global ülesannete_fail
-    ülesannete_fail = os.path.join(assets_kaust, "ülesanded.txt")
+# Automaatne salvestamine iga 5 minuti järel
 
-    # Luuakse ja seadistatakse kasutajaliidese vidinad
-    global ülesande_sisestus
-    ülesande_sisestus = tk.Entry(root, width=35)
-    ülesande_sisestus.pack(pady=10)
+def automaatne_salvestus():
+    conn.commit()
+    root.after(300000, automaatne_salvestus)  # 300000 ms = 5 minutit
 
-    lisa_ülesanne_nupp = tk.Button(root, text="Lisa Ülesanne", command=lisa_ülesanne)
-    lisa_ülesanne_nupp.pack(pady=5)
+# Peamise akna loomine
+root = tk.Tk()
+root.title("Ülesannete haldur")
+root.geometry("800x800")  # Suurendasime akna suurust, et kõik elemendid oleksid kohe nähtavad
 
-    kustuta_ülesanne_nupp = tk.Button(root, text="Kustuta Ülesanne", command=kustuta_ülesanne)
-    kustuta_ülesanne_nupp.pack(pady=5)
+# Andmebaasiga ühendamine
+init_db()
 
-    global ülesannete_nimekiri
-    ülesannete_nimekiri = tk.Listbox(root, width=35, height=15, selectmode=tk.SINGLE)
-    ülesannete_nimekiri.pack(pady=10)
+# UI komponendid
+sisestus_raam = tk.Frame(root)
+sisestus_raam.pack(pady=10, padx=10, fill=tk.X)
 
-    salvesta_nupp = tk.Button(root, text="Salvesta Ülesanded", command=salvesta_ülesanded)
-    salvesta_nupp.pack(side=tk.LEFT, padx=20)
+# Ülesande sisestusväli
+tk.Label(sisestus_raam, text="Ülesande pealkiri:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+ülesande_sisestus = tk.Entry(sisestus_raam, width=50, relief="solid", bd=1)
+ülesande_sisestus.grid(row=0, column=1, padx=5, pady=5)
 
-    laadi_nupp = tk.Button(root, text="Laadi Ülesanded", command=laadi_ülesanded)
-    laadi_nupp.pack(side=tk.RIGHT, padx=20)
+# Ülesannete kategooriad
+kategooriad = ["Töö", "Isiklik", "Projektid", "Haridus", "Muud"]  # Lisatud rohkem kategooriaid
+tk.Label(sisestus_raam, text="Kategooria:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
+kategooria_var = tk.StringVar(value=kategooriad[0])
+kategooria_menüü = ttk.Combobox(sisestus_raam, textvariable=kategooria_var, values=kategooriad, state="readonly")
+kategooria_menüü.grid(row=1, column=1, padx=5, pady=5)
 
-    # Rakenduse käivitamine
-    laadi_ülesanded()  # Laadib salvestatud ülesanded käivitamisel
-    root.mainloop()
+# Ülesannete prioriteet
+prioriteedid = ["Kõrge", "Keskmine", "Madal"]
+tk.Label(sisestus_raam, text="Prioriteet:").grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
+prioriteet_var = tk.StringVar(value=prioriteedid[0])
+prioriteet_menüü = ttk.Combobox(sisestus_raam, textvariable=prioriteet_var, values=prioriteedid, state="readonly")
+prioriteet_menüü.grid(row=2, column=1, padx=5, pady=5)
 
-if __name__ == "__main__":
-    main()
+# Tähtaeg
+tk.Label(sisestus_raam, text="Tähtaeg (YYYY-MM-DD):").grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
+tähtaeg_sisestus = tk.Entry(sisestus_raam, relief="solid", bd=1)
+tähtaeg_sisestus.grid(row=3, column=1, padx=5, pady=5)
 
+# Nupud
+nupu_raam = tk.Frame(root)
+nupu_raam.pack(pady=10)
+
+nupp_stiil = {"relief": "solid", "bd": 1, "highlightthickness": 0, "padx": 10, "pady": 5}
+
+lisa_nupp = tk.Button(nupu_raam, text="Lisa ülesanne", command=lisa_ülesanne, **nupp_stiil)
+lisa_nupp.grid(row=0, column=0, padx=5)
+
+kustuta_nupp = tk.Button(nupu_raam, text="Kustuta ülesanne", command=kustuta_ülesanne, **nupp_stiil)
+kustuta_nupp.grid(row=0, column=1, padx=5)
+
+# Otsing
+otsingu_raam = tk.Frame(root)
+otsingu_raam.pack(pady=10, fill=tk.X)
+
+tk.Label(otsingu_raam, text="Otsing:").pack(side=tk.LEFT, padx=5)
+otsingu_sisestus = tk.Entry(otsingu_raam, relief="solid", bd=1)
+otsingu_sisestus.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+otsingu_nupp = tk.Button(otsingu_raam, text="Otsi", command=laadi_ülesanded, **nupp_stiil)
+otsingu_nupp.pack(side=tk.RIGHT, padx=5)
+
+# Ülesannete tabel
+veerud = ("id", "pealkiri", "kategooria", "prioriteet", "tähtaeg")
+ülesannete_loend = ttk.Treeview(root, columns=veerud, show="headings")
+
+for veerg in veerud:
+    ülesannete_loend.heading(veerg, text=veerg.capitalize())
+    ülesannete_loend.column(veerg, anchor=tk.CENTER)
+
+ülesannete_loend.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+# Ülesannete laadimine ja automaatne salvestamine
+laadi_ülesanded()
+automaatne_salvestus()
+
+# Rakenduse käivitamine
+root.mainloop()
+
+# Andmebaasi ühenduse sulgemine rakenduse lõpetamisel
+conn.close()
