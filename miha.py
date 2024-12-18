@@ -8,7 +8,18 @@
 #
 # Autorid: Paul-Egert Peensalu, Mart Rõbin
 #
-# Lisakommentaar (nt käivitusjuhend): Praegu ei ole.
+# Lisakommentaar:
+# Rakenduse käivitamiseks veenduge, et kõik vajalikud failid on olemas:
+# 1. Python peab olema teie arvutisse installeeritud.
+# 2. Veenduge, et SQLite andmebaas (./data/ülesanded.db) oleks õigesti salvestatud programmi kaustas. Kui faili ei leita, loob rakendus selle automaatselt.
+# 3. Käivitage skript, kasutades käsureal käsku `python miha.py` või IDE-s.
+# 
+# Rakendus võimaldab lisada, kustutada ja otsida ülesandeid. Prioriteedid tähistatakse erinevate taustavärvidega:
+# - Kõrge: punane
+# - Keskmine: kollane
+# - Madal: roheline
+# 
+# Kuupäeva sisestamisel peab järgima formaati YYYY-MM-DD.
 #
 ##################################################
 
@@ -105,68 +116,68 @@ def tühjenda_väljad():
     prioriteet_var.set(prioriteedid[0])
     tähtaeg_sisestus.delete(0, tk.END)
 
-# Automaatne salvestamine iga 5 minuti järel
-
-def automaatne_salvestus():
-    conn.commit()
-    root.after(300000, automaatne_salvestus)  # 300000 ms = 5 minutit
-
 # Peamise akna loomine
 root = tk.Tk()
-root.title("Ülesannete haldur")
-root.geometry("800x800")  # Suurendasime akna suurust, et kõik elemendid oleksid kohe nähtavad
+root.title("Ülesannete haldur | Projekt MiHa")
+root.geometry("800x600")
+root.configure(bg="#f7f9fc")
 
 # Andmebaasiga ühendamine
 init_db()
 
+# Stiilid
+stiil = ttk.Style()
+stiil.configure("TLabel", font=("Arial", 12), background="#f7f9fc")
+stiil.configure("TButton", font=("Arial", 12), padding=6)
+stiil.configure("Treeview", font=("Arial", 10))
+stiil.configure("Treeview.Heading", font=("Arial", 12, "bold"))
+
 # UI komponendid
-sisestus_raam = tk.Frame(root)
+sisestus_raam = tk.Frame(root, bg="#f7f9fc")
 sisestus_raam.pack(pady=10, padx=10, fill=tk.X)
 
 # Ülesande sisestusväli
-tk.Label(sisestus_raam, text="Ülesande pealkiri:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
-ülesande_sisestus = tk.Entry(sisestus_raam, width=50, relief="solid", bd=1)
+tk.Label(sisestus_raam, text="Ülesande pealkiri:", bg="#f7f9fc", font=("Arial", 12)).grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+ülesande_sisestus = tk.Entry(sisestus_raam, width=50, font=("Arial", 12))
 ülesande_sisestus.grid(row=0, column=1, padx=5, pady=5)
 
 # Ülesannete kategooriad
 kategooriad = ["Töö", "Isiklik", "Projektid", "Haridus", "Muud"]  # Lisatud rohkem kategooriaid
-tk.Label(sisestus_raam, text="Kategooria:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
+tk.Label(sisestus_raam, text="Kategooria:", bg="#f7f9fc", font=("Arial", 12)).grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
 kategooria_var = tk.StringVar(value=kategooriad[0])
-kategooria_menüü = ttk.Combobox(sisestus_raam, textvariable=kategooria_var, values=kategooriad, state="readonly")
+kategooria_menüü = ttk.Combobox(sisestus_raam, textvariable=kategooria_var, values=kategooriad, state="readonly", font=("Arial", 12))
 kategooria_menüü.grid(row=1, column=1, padx=5, pady=5)
 
 # Ülesannete prioriteet
 prioriteedid = ["Kõrge", "Keskmine", "Madal"]
-tk.Label(sisestus_raam, text="Prioriteet:").grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
+tk.Label(sisestus_raam, text="Prioriteet:", bg="#f7f9fc", font=("Arial", 12)).grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
 prioriteet_var = tk.StringVar(value=prioriteedid[0])
-prioriteet_menüü = ttk.Combobox(sisestus_raam, textvariable=prioriteet_var, values=prioriteedid, state="readonly")
+prioriteet_menüü = ttk.Combobox(sisestus_raam, textvariable=prioriteet_var, values=prioriteedid, state="readonly", font=("Arial", 12))
 prioriteet_menüü.grid(row=2, column=1, padx=5, pady=5)
 
 # Tähtaeg
-tk.Label(sisestus_raam, text="Tähtaeg (YYYY-MM-DD):").grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
-tähtaeg_sisestus = tk.Entry(sisestus_raam, relief="solid", bd=1)
+tk.Label(sisestus_raam, text="Tähtaeg (YYYY-MM-DD):", bg="#f7f9fc", font=("Arial", 12)).grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
+tähtaeg_sisestus = tk.Entry(sisestus_raam, font=("Arial", 12))
 tähtaeg_sisestus.grid(row=3, column=1, padx=5, pady=5)
 
 # Nupud
 nupu_raam = tk.Frame(root)
 nupu_raam.pack(pady=10)
 
-nupp_stiil = {"relief": "solid", "bd": 1, "highlightthickness": 0, "padx": 10, "pady": 5}
-
-lisa_nupp = tk.Button(nupu_raam, text="Lisa ülesanne", command=lisa_ülesanne, **nupp_stiil)
+lisa_nupp = tk.Button(nupu_raam, text="Lisa ülesanne", command=lisa_ülesanne, bg="#4caf50", fg="white", font=("Arial", 12), relief="flat")
 lisa_nupp.grid(row=0, column=0, padx=5)
 
-kustuta_nupp = tk.Button(nupu_raam, text="Kustuta ülesanne", command=kustuta_ülesanne, **nupp_stiil)
+kustuta_nupp = tk.Button(nupu_raam, text="Kustuta ülesanne", command=kustuta_ülesanne, bg="#f44336", fg="white", font=("Arial", 12), relief="flat")
 kustuta_nupp.grid(row=0, column=1, padx=5)
 
 # Otsing
-otsingu_raam = tk.Frame(root)
+otsingu_raam = tk.Frame(root, bg="#f7f9fc")
 otsingu_raam.pack(pady=10, fill=tk.X)
 
-tk.Label(otsingu_raam, text="Otsing:").pack(side=tk.LEFT, padx=5)
-otsingu_sisestus = tk.Entry(otsingu_raam, relief="solid", bd=1)
+tk.Label(otsingu_raam, text="Otsing:", bg="#f7f9fc", font=("Arial", 12)).pack(side=tk.LEFT, padx=5)
+otsingu_sisestus = tk.Entry(otsingu_raam, font=("Arial", 12))
 otsingu_sisestus.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
-otsingu_nupp = tk.Button(otsingu_raam, text="Otsi", command=laadi_ülesanded, **nupp_stiil)
+otsingu_nupp = tk.Button(otsingu_raam, text="Otsi", command=laadi_ülesanded, bg="#2196f3", fg="white", font=("Arial", 12), relief="flat")
 otsingu_nupp.pack(side=tk.RIGHT, padx=5)
 
 # Ülesannete tabel
@@ -181,10 +192,10 @@ for veerg in veerud:
 
 # Ülesannete laadimine ja automaatne salvestamine
 laadi_ülesanded()
-automaatne_salvestus()
 
 # Rakenduse käivitamine
 root.mainloop()
 
 # Andmebaasi ühenduse sulgemine rakenduse lõpetamisel
 conn.close()
+
