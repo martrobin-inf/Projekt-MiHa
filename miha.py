@@ -21,6 +21,7 @@
 # 
 # Kuupäeva sisestamisel peab järgima formaati YYYY-MM-DD.
 #
+# PS. Kui midagi ei tööta, siis tõenäoliselt on viga meie koodis :)
 ##################################################
 
 import tkinter as tk
@@ -32,7 +33,6 @@ from datetime import datetime
 # SQLite andmebaasi ühendamine ja loomine
 # See funktsioon loob vajaliku tabeli, kui seda pole olemas
 # ja tagab ühenduse andmebaasiga
-
 def init_db():
     global conn, cursor
     db_path = "./data/ülesanded.db"  # Andmebaasi fail asub rakenduse kataloogis
@@ -50,7 +50,6 @@ def init_db():
 
 # Funktsioon ülesande lisamiseks andmebaasi
 # Kasutaja sisestab vajalikud andmed vormi kaudu
-
 def lisa_ülesanne():
     pealkiri = ülesande_sisestus.get()
     kategooria = kategooria_var.get()
@@ -74,7 +73,6 @@ def lisa_ülesanne():
         messagebox.showerror("Viga", "Kuupäev peab olema formaadis YYYY-MM-DD.")
 
 # Funktsioon valitud ülesande kustutamiseks
-
 def kustuta_ülesanne():
     valitud_üksus = ülesannete_loend.selection()
     if not valitud_üksus:
@@ -87,7 +85,6 @@ def kustuta_ülesanne():
     laadi_ülesanded()
 
 # Funktsioon ülesannete laadimiseks andmebaasist ja kuvamiseks tabelis
-
 def laadi_ülesanded():
     for item in ülesannete_loend.get_children():
         ülesannete_loend.delete(item)
@@ -109,7 +106,6 @@ def laadi_ülesanded():
     ülesannete_loend.tag_configure("#ccffcc", background="#ccffcc")
 
 # Tühjendame vormiväljad peale ülesande lisamist
-
 def tühjenda_väljad():
     ülesande_sisestus.delete(0, tk.END)
     kategooria_var.set(kategooriad[0])
