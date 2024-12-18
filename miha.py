@@ -35,9 +35,10 @@ from datetime import datetime
 # ja tagab ühenduse andmebaasiga
 def init_db():
     global conn, cursor
-    db_path = "./data/ülesanded.db"  # Andmebaasi fail asub rakenduse kataloogis
-    conn = sqlite3.connect(db_path)
+    db_path = "./data/ülesanded.db" # Andmebaasi fail, see asub rakenduse kaustas (data kaust)
+    conn = sqlite3.connect(db_path) # Ühendame andmebaasi
     cursor = conn.cursor()
+    # Loome tabeli, kui seda pole veel olemas
     cursor.execute('''CREATE TABLE IF NOT EXISTS ülesanded (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         pealkiri TEXT NOT NULL,
@@ -46,27 +47,29 @@ def init_db():
                         tähtaeg TEXT,
                         loodud TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )''')
-    conn.commit()
+    conn.commit() # Salvestame muudatused
 
 # Funktsioon ülesande lisamiseks andmebaasi
 # Kasutaja sisestab vajalikud andmed vormi kaudu
 def lisa_ülesanne():
+    # Saame andmeid
     pealkiri = ülesande_sisestus.get()
     kategooria = kategooria_var.get()
     prioriteet = prioriteet_var.get()
     tähtaeg = tähtaeg_sisestus.get()
-
+    
+    # Kui pealkiri on tühi, kuvame hoiatus
     if not pealkiri.strip():
         messagebox.showwarning("Viga", "Ülesande pealkiri ei tohi olla tühi.")
         return
 
     try:
         if tähtaeg:
-            datetime.strptime(tähtaeg, "%Y-%m-%d")  # Kontrollime kuupäeva formaati
+            datetime.strptime(tähtaeg, "%Y-%m-%d")  # Kuupäeva formaati kontroll
         cursor.execute("INSERT INTO ülesanded (pealkiri, kategooria, prioriteet, tähtaeg) VALUES (?, ?, ?, ?)",
-                       (pealkiri, kategooria, prioriteet, tähtaeg))
-        conn.commit()
-        laadi_ülesanded()
+                       (pealkiri, kategooria, prioriteet, tähtaeg)) # Lisame ülesande andmebaasi
+        conn.commit() # Salvestame muudatused
+        laadi_ülesanded() 
         tühjenda_väljad()
         messagebox.showinfo("Õnnestus", "Ülesanne edukalt lisatud.")
     except ValueError:
@@ -74,14 +77,14 @@ def lisa_ülesanne():
 
 # Funktsioon valitud ülesande kustutamiseks
 def kustuta_ülesanne():
-    valitud_üksus = ülesannete_loend.selection()
+    valitud_üksus = ülesannete_loend.selection() # Saame valitud ülesande
     if not valitud_üksus:
         messagebox.showwarning("Viga", "Valige ülesanne kustutamiseks.")
         return
 
-    ülesande_id = ülesannete_loend.item(valitud_üksus[0], 'values')[0]
-    cursor.execute("DELETE FROM ülesanded WHERE id = ?", (ülesande_id,))
-    conn.commit()
+    ülesande_id = ülesannete_loend.item(valitud_üksus[0], 'values')[0] # Saame ülesande id
+    cursor.execute("DELETE FROM ülesanded WHERE id = ?", (ülesande_id,)) # Kustutame ülesande andmebaasist
+    conn.commit() # Salvestame muudatused
     laadi_ülesanded()
 
 # Funktsioon ülesannete laadimiseks andmebaasist ja kuvamiseks tabelis
@@ -92,20 +95,21 @@ def laadi_ülesanded():
     otsingu_päring = otsingu_sisestus.get().strip().lower()
     if otsingu_päring:
         cursor.execute("SELECT * FROM ülesanded WHERE LOWER(pealkiri) LIKE ? OR LOWER(kategooria) LIKE ?", 
-                       (f"%{otsingu_päring}%", f"%{otsingu_päring}%"))
+                       (f"%{otsingu_päring}%", f"%{otsingu_päring}%")) # Kui otsing on olemas, siis otsime ülesandeid
     else:
-        cursor.execute("SELECT * FROM ülesanded ORDER BY CASE prioriteet WHEN 'Kõrge' THEN 1 WHEN 'Keskmine' THEN 2 WHEN 'Madal' THEN 3 END")
+        cursor.execute("SELECT * FROM ülesanded ORDER BY CASE prioriteet WHEN 'Kõrge' THEN 1 WHEN 'Keskmine' THEN 2 WHEN 'Madal' THEN 3 END") # Kui otsingut ei ole, kuvame kõik ülesanded prioriteedi järgi
 
     for row in cursor.fetchall():
         ülesande_id, pealkiri, kategooria, prioriteet, tähtaeg, _ = row
         värv = "#ffcccc" if prioriteet == "Kõrge" else "#ffffcc" if prioriteet == "Keskmine" else "#ccffcc"
         ülesannete_loend.insert("", tk.END, values=(ülesande_id, pealkiri, kategooria, prioriteet, tähtaeg), tags=(värv,))
-
+        
+    # Määrame värvid tabelis
     ülesannete_loend.tag_configure("#ffcccc", background="#ffcccc")
     ülesannete_loend.tag_configure("#ffffcc", background="#ffffcc")
     ülesannete_loend.tag_configure("#ccffcc", background="#ccffcc")
 
-# Tühjendame vormiväljad peale ülesande lisamist
+# Funktsioon, mis tühjendab sisendväljad pärast ülesande lisamist
 def tühjenda_väljad():
     ülesande_sisestus.delete(0, tk.END)
     kategooria_var.set(kategooriad[0])
@@ -138,7 +142,7 @@ tk.Label(sisestus_raam, text="Ülesande pealkiri:", bg="#f7f9fc", font=("Arial",
 ülesande_sisestus.grid(row=0, column=1, padx=5, pady=5)
 
 # Ülesannete kategooriad
-kategooriad = ["Töö", "Isiklik", "Projektid", "Haridus", "Muud"]  # Lisatud rohkem kategooriaid
+kategooriad = ["Töö", "Isiklik", "Projektid", "Haridus", "Muud"] # Kategooriad ülesannete jaoks: Töö, Isiklik, Projektid, Haridus, Muud
 tk.Label(sisestus_raam, text="Kategooria:", bg="#f7f9fc", font=("Arial", 12)).grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
 kategooria_var = tk.StringVar(value=kategooriad[0])
 kategooria_menüü = ttk.Combobox(sisestus_raam, textvariable=kategooria_var, values=kategooriad, state="readonly", font=("Arial", 12))
@@ -156,7 +160,7 @@ tk.Label(sisestus_raam, text="Tähtaeg (YYYY-MM-DD):", bg="#f7f9fc", font=("Aria
 tähtaeg_sisestus = tk.Entry(sisestus_raam, font=("Arial", 12))
 tähtaeg_sisestus.grid(row=3, column=1, padx=5, pady=5)
 
-# Nupud
+# Nupud ülesane lisamiseks ja kustutamiseks
 nupu_raam = tk.Frame(root)
 nupu_raam.pack(pady=10)
 
