@@ -21,3 +21,4 @@ Rakendus võimaldab lisada, kustutada ja otsida ülesandeid. Prioriteedid tähis
 
 Kuupäeva sisestamisel peab järgima formaati YYYY-MM-DD.
 
+PS. Kui midagi ei tööta, siis tõenäoliselt on viga meie koodis :)
