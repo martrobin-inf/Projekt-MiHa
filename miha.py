@@ -160,7 +160,7 @@ tk.Label(sisestus_raam, text="Tähtaeg (YYYY-MM-DD):", bg="#f7f9fc", font=("Aria
 tähtaeg_sisestus = tk.Entry(sisestus_raam, font=("Arial", 12))
 tähtaeg_sisestus.grid(row=3, column=1, padx=5, pady=5)
 
-# Nupud ülesane lisamiseks ja kustutamiseks
+# Nupud ülesannete lisamiseks ja kustutamiseks
 nupu_raam = tk.Frame(root)
 nupu_raam.pack(pady=10)
 
