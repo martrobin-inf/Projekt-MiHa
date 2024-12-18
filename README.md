@@ -1,4 +1,4 @@
-# Projekt-Miha
+# Projekt-MiHa
 
 Programmeerimine I
 2024/2025 sügissemester
