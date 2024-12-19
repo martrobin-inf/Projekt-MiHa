@@ -2,9 +2,8 @@
 # Programmeerimine I
 # 2024/2025 sügissemester
 #
-# Projekt
+# Projekt MiHa
 # Teema: To-Do nimekiri, kasutades tkinter ja SQLite.
-#
 #
 # Autorid: Paul-Egert Peensalu, Mart Rõbin
 #
@@ -190,7 +189,7 @@ for veerg in veerud:
 
 ülesannete_loend.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-# Ülesannete laadimine ja automaatne salvestamine
+# Ülesannete laadimine
 laadi_ülesanded()
 
 # Rakenduse käivitamine
